@@ -8,7 +8,7 @@
 
 Preferences preferences;
 
-U8X8_SH1106_128X64_NONAME_HW_I2C u8x8(/* reset=*/U8X8_PIN_NONE, OLED_SCK_PIN, OLED_SDA_PIN);
+U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* reset=*/U8X8_PIN_NONE, OLED_SCK_PIN, OLED_SDA_PIN);
 
 #define U8LOG_WIDTH 16
 #define U8LOG_HEIGHT 8
@@ -20,6 +20,12 @@ U8X8LOG u8x8log;
 #define PIN_BUZZER 4
 
 const int ledPin = 13; // GPIO pin connected to the LED
+const int resetButtonPin = 32;
+const unsigned long holdDuration = 2000; // Hold for 2 seconds
+unsigned long buttonPressTime = 0;
+bool isButtonPressed = false;
+unsigned long lastClearTime = 0;
+const unsigned long clearCooldown = 3000; // 3 second cooldown
 const int LED1 = 26;
 
 MFRC522 rfid(SS_PIN, RST_PIN); // Instance of the class
@@ -81,6 +87,7 @@ void setup()
 {
 
   pinMode(LED1, OUTPUT);
+  pinMode(resetButtonPin, INPUT_PULLUP);
   u8x8.begin();
   u8x8.setFont(u8x8_font_chroma48medium8_r);
   u8x8log.begin(u8x8, U8LOG_WIDTH, U8LOG_HEIGHT, u8log_buffer);
@@ -109,7 +116,8 @@ void setup()
   String prev2 = toString(pre2NuidPICC, 4);
   if (counter == 0)
   {
-    u8x8log.print("There is no card");
+    u8x8log.print("RFID Reader\n");
+    u8x8log.print("Ready...\n");
   }
   else if (counter == 1)
   {
@@ -150,8 +158,65 @@ void setup()
   printHex(key.keyByte, MFRC522::MF_KEY_SIZE);
 }
 
+void checkResetButton() {
+  int buttonState = digitalRead(resetButtonPin);
+  
+  // 1. Start tracking if button is pressed, not already tracking, and cooldown has passed
+  if (buttonState == LOW && !isButtonPressed && (millis() - lastClearTime > clearCooldown)) {
+    isButtonPressed = true;
+    buttonPressTime = millis();
+  }
+  
+  // 2. If we are currently tracking a button press
+  if (isButtonPressed) {
+    if (buttonState == HIGH) {
+      // Button released before hold duration, cancel the reset
+      isButtonPressed = false;
+    } 
+    else if (millis() - buttonPressTime >= holdDuration) {
+      // Button held long enough, execute reset
+      
+      // A. Safely clear NVS by closing and reopening the namespace
+      preferences.end();
+      preferences.begin("my-app", false);
+      preferences.clear(); 
+      
+      // B. Reset local variables to match a fresh boot state
+      counter = 0;
+      for (byte i = 0; i < 4; i++) {
+        nuidPICC[i] = 0;
+        preNuidPICC[i] = 0;
+        pre2NuidPICC[i] = 0;
+      }
+      
+      // C. Visual/Audio Feedback (Double beep and LED flash)
+      digitalWrite(ledPin, HIGH);
+      digitalWrite(PIN_BUZZER, HIGH);
+      delay(150);
+      digitalWrite(ledPin, LOW);
+      digitalWrite(PIN_BUZZER, LOW);
+      delay(100);
+      digitalWrite(ledPin, HIGH);
+      digitalWrite(PIN_BUZZER, HIGH);
+      delay(150);
+      digitalWrite(ledPin, LOW);
+      digitalWrite(PIN_BUZZER, LOW);
+      
+      // D. Update OLED Screen (\f clears the U8X8LOG buffer)
+      u8x8log.print("\f"); 
+      u8x8log.print("NVS CLEARED!\n");
+      u8x8log.print("Ready...\n");
+      Serial.println("NVS Cleared successfully.");
+      
+      // E. Reset state and start the cooldown timer
+      isButtonPressed = false;
+      lastClearTime = millis();
+    }
+  }
+}
 void loop()
 {
+    checkResetButton();
 
   // Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
   if (!rfid.PICC_IsNewCardPresent())
