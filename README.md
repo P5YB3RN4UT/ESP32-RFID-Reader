@@ -70,7 +70,7 @@ The project includes source code for an RFID Reader with the following requireme
 
 ## Schematic
 
-<img src="https://www.media-underground.net/images/rfid_schematic.png">
+<img src="https://www.media-underground.net/images/rfid-schematic.png">
 
 
 ## Operation
