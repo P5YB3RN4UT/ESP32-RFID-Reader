@@ -1,9 +1,8 @@
 <p align="center">
-  <a href="" rel="noopener">
- <img width=200px height=200px src="https://cdn-icons-png.freepik.com/512/5200/5200104.png" alt="Project logo"></a>
+ <img src="https://www.media-underground.net/images/rfid.png">
 </p>
 
-<h3 align="center">RFID Reader Project</h3>
+<h3 align="center">ESP32 RFID READER</h3>
 
 <div align="center">
 
@@ -16,102 +15,70 @@
 ---
 
 <p align="center"> 
-A project involves creating a device that uses an ESP32 microcontroller to read RFID tags, allowing for wireless identification and access control applications.
+This project involves creating a device that uses an ESP32 microcontroller to read RFID tags.
     <br> 
 </p>
 
-## 📝 Table of Contents
-
-- [Introduction](#introduction)
-- [Getting Started](#getting-started)
-- [Bill of Material](#material)
-- [Hardware Schematic](#schematic)
-- [Software Concept](#software)
-- [Acknowledgments](#acknowledgement)
-
-## 🧐 Introduction <a name = "introduction"></a>
+## Introduction
 
 The project includes source code for an RFID Reader with the following requirements:
 
-#### 📃 Functional requirement
+- <b>Read RFID Card/Tag</b>
 
-- Read RFID Card: The ESP32 must be able to read data from RFID cards using an attached RFID reader module, capturing the unique identifier (UID) and other stored information from the card.
-- Display Card Info on OLED Screen: Upon successfully reading an RFID card, the ESP32 should display the card's information, such as the UID and any additional data, on an OLED screen connected to the microcontroller.
-- Activate Buzzer and LED on RFID Tap: When an RFID card is tapped and read, the ESP32 should trigger a buzzer and light up an LED to provide audible and visual feedback, indicating a successful read operation.
+  <i>The ESP32 must be able to read data from RFID cards using an attached RFID reader module, capturing the unique identifier (UID) and other stored information from the card.</i>
+  
+- <b>Display Card Info on OLED Screen</b>
 
-#### 📃 Non-functional requirement
+  <i>Upon successfully reading an RFID card, the ESP32 should display the card's UID on an OLED screen connected to the microcontroller.</i>
+  
+- <b>Activate Buzzer and LED on RFID Tap</b>
 
-- Debouncing: Introducing a debounce time interval during which repeated taps of the same card are ignored to prevent duplicate reads.
-- State Management: Maintaining a record of recently read card UIDs and ensuring that any repeated taps within a predefined time window are disregarded.
+  <i>When an RFID card is tapped and read, the ESP32 should trigger a buzzer and light up an LED to provide audible and visual feedback indicating a successful read operation.</i>
+  
+- <b>Debouncing</b>
 
-## 🏁 Getting Started <a name = "getting-started"></a>
+  <i>Introducing a debounce time interval during which repeated taps of the same card are ignored to prevent duplicate reads.</i>
+  
+- <b>State Management</b>
 
-### Link video demo: [Link demo](https://youtube.com/shorts/sYhw6DB9md4?si=6S6WKxQFRnmguthZ)
+  <i>Maintaining a record of recently read card UIDs and ensuring that any repeated taps within a predefined time window are disregarded.</i>
 
-### Hardware:
+- <b>Clear Record</b>
 
-1. RFID CARDs
+  <i>Be able to clear NVS (non-volatile data storage) on 2 second button depress.</i>
+
+- <b>Web Interface</b>
+
+  <i>Broadcast a local access point to display a retro terminal-style Web UI showing sectors, blocks and trailer markers of RFID card/tag.</i>
+
+## Hardware
+
+1. RFID Cards and/or Tags
 2. ESP32 Module
 3. Programming Cable
 4. RFID-RC522
 5. OLED SSD1306
-6. Led
+6. LED
 7. Buzzer
+8. Push Button Switch
 
-![hardware](https://github.com/hathai25/esp32-rfid-reader/assets/87304085/341c01d9-b354-4e49-a371-d66e80acad19)
 
-## ⛏️ Bill of Material <a name = "material"></a>
+## Software
 
-- [ArduinoIDE](https://www.arduino.cc/en/software): For programming the device
-- [Altium](https://www.altium.com/): For designing schematic
-- ESP32 Microcontroller x1
-- LED x1
-- Oled SSD1306 x1
-- Buzzer x1
+[ArduinoIDE](https://www.arduino.cc/en/software) - For Programming The Device.
 
-## 📖 Hardware Schematic <a name = "schematic"></a>
 
-![image](https://github.com/hathai25/esp32-rfid-reader/assets/74005327/93767119-3dca-4666-ac78-f9533a0ed0d5)
+## Schematic
 
-This schematic outlines the interconnections between an ESP32 microcontroller and various peripheral components, including an RFID-RC522 module, an OLED display, an LED, and a Buzzer. The connections are specified via General-Purpose Input/Output (GPIO) pins, designated for specific signal transmissions that enable communication between the ESP32 and the peripherals. [Software Concept](#software) below is a detailed breakdown of the connections.
+<img src="https://www.media-underground.net/images/rfid_schematic.png">
 
-## 💻 Software Concept <a name = "sofware"></a>
 
-By utilizing the GPIOs of the ESP32 and SPI & I²C interface support, the project is able to control the following components:
+## Operation
 
-#### ESP32 and RFID-RC522 Module
+1. Power up the device.
+2. Connect to WiFi access point "ESP32_RFID_Reader" with the password "12345678".
+3. Type the url "http://192.168.4.1" in preferred web browser.
+4. Scan card/tag - the OLED will display the tag/card UID whilst the Web UI shows sectors, blocks and trailer markers.
+5. Scan another tag/card to repeat.
+6. Clear card history by depressing push button for 2 seconds.
 
-- GPIO2: This reset line is connected from the ESP32 to the RST pin on the RFID-RC522. It is used to reset the RFID module.
-- GPIO5: The SS pin on the RFID-RC522 is connected to GPIO5 on the ESP32. This pin enables the ESP32 to select the RFID-RC522 module for communication over the SPI interface.
-
-#### ESP32 and OLED Display
-
-- GPIO21: The SDA line of the I²C interface for the OLED display is connected to GPIO21. This line is used for data transfer between the ESP32 and the OLED.
-- GPIO22: The SCL line of the I²C interface links GPIO22 on the ESP32 with the corresponding SCL input on the OLED. This line provides the clock signal that synchronizes data transmission.
-
-#### ESP32 and LED
-
-- GPIO13: An LED is connected to GPIO13 on the ESP32. This setup allows the ESP32 to control the LED, turning it on or off by setting GPIO13 high or low, respectively.
-
-#### ESP32 and Buzzer
-
-- GPIO4: The Buzzer is connected to GPIO4 on the ESP32. By toggling GPIO4 high and low at various frequencies, the ESP32 can control the buzzer to generate different tones.
-
-### Initialization
-
-- Initialize the U8X8 display, LED pin, buzzer pin, and RFID module.
-- Retrieve the index along with the three most recent IDs from the Preferences library.
-- Display the three most recent IDs on the screen.
-
-### Main Loop
-
-- Check if the newly scanned card matches the previously scanned card; if it does, do not process the new card scan.
-- Activate the buzzer and turn on the LED light to signal a successful scan.
-- Update the storage with the three most recent card IDs and increment the counter by one.
-- Save the updated values and the counter increment back to the Preferences library - which uses a portion of the on-board non-volatile memory (NVS) of the ESP32 to store data.
-
-## ✍️ Authors <a name = "authors"></a>
-
-- [@hathai25](https://github.com/hathai25)
-- [@Ha-Hieu-Thanh](https://github.com/Ha-Hieu-Thanh)
-- [@ntanh2201](https://github.com/ntanh2201)
