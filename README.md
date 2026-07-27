@@ -77,7 +77,7 @@ The project includes source code for an RFID Reader with the following requireme
 
 1. Power up the device.
 2. Connect to WiFi access point "ESP32_RFID_Reader" with the password "12345678".
-3. Type the url "http://192.168.4.1" in preferred web browser.
+3. Type URL http://192.168.4.1 in preferred web browser.
 4. Scan card/tag - the OLED will display the tag/card UID whilst the Web UI shows sectors, blocks and trailer markers.
 5. Scan another tag/card to repeat.
 6. Clear card history by depressing push button for 2 seconds.
