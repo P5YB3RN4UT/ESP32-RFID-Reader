@@ -25,7 +25,7 @@ The project includes source code for an RFID Reader with the following requireme
 
 - <b>Read RFID Card/Tag</b>
 
-  <i>The ESP32 must be able to read data from RFID cards using an attached RFID reader module, capturing the unique identifier (UID) and other stored information from the card.</i>
+  <i>The ESP32 must be able to read data from RFID tags and cards using an attached RFID reader module, capturing the unique identifier (UID) and other stored information from the card.</i>
   
 - <b>Display Card Info on OLED Screen</b>
 
@@ -53,7 +53,7 @@ The project includes source code for an RFID Reader with the following requireme
 
 ## Hardware
 
-1. RFID Cards and/or Tags
+1. RFID Tags/Cards
 2. ESP32 Module
 3. Programming Cable
 4. RFID-RC522
@@ -78,7 +78,7 @@ The project includes source code for an RFID Reader with the following requireme
 1. Power up the device.
 2. Connect to WiFi access point "ESP32_RFID_Reader" with the password "12345678".
 3. Type URL http://192.168.4.1 in preferred web browser.
-4. Scan card/tag - the OLED will display the tag/card UID whilst the Web UI shows sectors, blocks and trailer markers.
+4. Scan tag/card - the OLED will display the UID whilst the Web UI shows sectors, blocks and trailer markers.
 5. Scan another tag/card to repeat.
-6. Clear card history by depressing push button for 2 seconds.
+6. Clear scan history by depressing push button for 2 seconds.
 
