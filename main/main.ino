@@ -42,8 +42,8 @@ byte pre2NuidPICC[4];
 uint32_t counter;
 
 // --- WiFi Access Point Configuration ---
-const char* ap_ssid = "ESP32_RFID_Reader";
-const char* ap_password = "12345678";
+const char* ap_ssid = "(((+)))";
+const char* ap_password = "p5yb3rn4ut";
 
 WebServer server(80);
 
