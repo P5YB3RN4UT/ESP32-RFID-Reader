@@ -45,7 +45,7 @@ The project includes source code for an RFID Reader with the following requireme
   
 - <b>State Management</b>
 
-  <i>Maintaining a record of recently read tag or card UIDs and ensuring that any repeated taps within a predefined time window are disregarded.</i>
+  <i>Maintain a record of recently read tag or card UIDs and ensuring that any repeated taps within a predefined time window are disregarded.</i>
 
 - <b>Clear Record</b>
 
