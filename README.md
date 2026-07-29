@@ -41,7 +41,7 @@ The project includes source code for an RFID Reader with the following requireme
   
 - <b>Debouncing</b>
 
-  <i>Introducing a debounce time interval during which repeated taps of the same tag or card are ignored to prevent duplicate reads.</i>
+  <i>Introduce a debounce time interval during which repeated taps of the same tag or card are ignored to prevent duplicate reads.</i>
   
 - <b>State Management</b>
 
@@ -106,8 +106,8 @@ The project includes source code for an RFID Reader with the following requireme
 	
 | PUSH BUTTON	| ESP32 DEVKIT V1 |
 |:---:|:---:|
-| 1	| GPIO32 |
-| 2	| GND |
+| PIN 1	| GPIO32 |
+| PIN 2	| GND |
 
 
 
