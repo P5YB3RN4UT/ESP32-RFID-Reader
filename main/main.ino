@@ -1,9 +1,9 @@
-#include <U8x8lib.h>
-#include <SPI.h>
-#include <MFRC522.h>
-#include <Preferences.h>
 #include <WiFi.h>
 #include <WebServer.h>
+#include <Preferences.h>
+#include <SPI.h>
+#include <MFRC522.h>
+#include <U8x8lib.h>
 
 #define OLED_SCK_PIN 22
 #define OLED_SDA_PIN 21
@@ -21,14 +21,17 @@ U8X8LOG u8x8log;
 #define RST_PIN 2
 #define PIN_BUZZER 4
 
-const int ledPin = 13;
+// --- RGB LED Pins (Assuming Common Cathode) ---
+const int rgbRedPin = 13;   // Previously the single LED pin
+const int rgbGreenPin = 14; // New pin for Green
+const int rgbBluePin = 27;  // New pin for Blue
+
 const int resetButtonPin = 32;
 const unsigned long holdDuration = 2000;
 unsigned long buttonPressTime = 0;
 bool isButtonPressed = false;
 unsigned long lastClearTime = 0;
 const unsigned long clearCooldown = 3000;
-const int LED1 = 26;
 
 MFRC522 rfid(SS_PIN, RST_PIN);
 MFRC522::MIFARE_Key key;
@@ -47,6 +50,10 @@ WebServer server(80);
 // Global variables for web display
 String scanStatus = "Waiting for a card...";
 String lastCardDump = "Waiting for a card...\n\nPlace a MIFARE Classic card on the reader\nto view the full memory dump.";
+
+// RGB Animation Variables
+unsigned long lastRgbUpdate = 0;
+int currentHue = 0;
 
 /**
  * Helper routine to dump a byte array as hex values to Serial.
@@ -78,11 +85,54 @@ String toString(byte *buffer, byte bufferSize) {
 }
 
 /**
+ * Converts HSV to RGB and writes to the LED pins.
+ * h: 0-359 (hue), brightnessMultiplier: 0.0 to 1.0
+ */
+void setRGB(int h, float brightnessMultiplier) {
+  int r, g, b;
+  int hue = h % 360;
+  int hi = (hue / 60) % 6;
+  int f = (hue % 60) * 255 / 60;
+  int p = 0;
+  int q = 255 - f;
+  int t = f;
+  
+  switch(hi) {
+    case 0: r = 255; g = t; b = p; break;
+    case 1: r = q; g = 255; b = p; break;
+    case 2: r = p; g = 255; b = t; break;
+    case 3: r = p; g = q; b = 255; break;
+    case 4: r = t; g = p; b = 255; break;
+    case 5: r = 255; g = p; b = q; break;
+  }
+  
+  analogWrite(rgbRedPin, (int)(r * brightnessMultiplier));
+  analogWrite(rgbGreenPin, (int)(g * brightnessMultiplier));
+  analogWrite(rgbBluePin, (int)(b * brightnessMultiplier));
+}
+
+/**
+ * Handles the idle state: breathing and cycling through colors.
+ */
+void updateIdleRGB() {
+  unsigned long now = millis();
+  if (now - lastRgbUpdate > 20) { // Update ~50 times a second
+    lastRgbUpdate = now;
+    currentHue = (currentHue + 1) % 360; // Cycle through colors
+    
+    // Breathing effect: sine wave from 0.0 to 1.0 over ~3 seconds
+    float breath = (sin(millis() / 500.0) + 1.0) / 2.0; 
+    
+    setRGB(currentHue, breath);
+  }
+}
+
+/**
  * Reads the entire card memory and formats it like the MFRC522 DumpInfo example.
  */
 void updateCardDump() {
   lastCardDump = "";
-  
+
   // Header
   lastCardDump += "Card UID:";
   for (byte i = 0; i < rfid.uid.size; i++) {
@@ -110,7 +160,7 @@ void updateCardDump() {
     lastCardDump += "Sector ";
     lastCardDump += sector;
     lastCardDump += "\n";
-    
+
     // Calculate block addresses based on sector (1K/Mini vs 4K)
     byte firstBlock = (sector < 32) ? (sector * 4) : (32 * 4 + (sector - 32) * 16);
     byte numBlocks = (sector < 32) ? 4 : 16;
@@ -118,7 +168,7 @@ void updateCardDump() {
     // Authenticate the sector
     MFRC522::StatusCode status = rfid.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, firstBlock, &key, &(rfid.uid));
     if (status != MFRC522::STATUS_OK) {
-      lastCardDump += "  PCD_Authenticate() failed: ";
+      lastCardDump += " PCD_Authenticate() failed: ";
       lastCardDump += rfid.GetStatusCodeName(status);
       lastCardDump += "\n\n";
       continue;
@@ -127,11 +177,11 @@ void updateCardDump() {
     // Read each block in the sector
     for (byte block = 0; block < numBlocks; block++) {
       byte blockAddr = firstBlock + block;
-      lastCardDump += "  Block ";
+      lastCardDump += " Block ";
       if (blockAddr < 10) lastCardDump += " ";
       lastCardDump += blockAddr;
       lastCardDump += " ";
-      
+
       status = rfid.MIFARE_Read(blockAddr, buffer, &size);
       if (status != MFRC522::STATUS_OK) {
         lastCardDump += "MIFARE_Read() failed: ";
@@ -144,7 +194,7 @@ void updateCardDump() {
       for (byte index = 0; index < 16; index++) {
         lastCardDump += (buffer[index] < 0x10 ? " 0" : " ") + String(buffer[index], HEX);
       }
-      
+
       // Mark the trailer block
       bool isTrailer = false;
       if (sector < 32) {
@@ -154,7 +204,7 @@ void updateCardDump() {
       }
 
       if (isTrailer) {
-        lastCardDump += "  [Trailer]";
+        lastCardDump += " [Trailer]";
       }
       lastCardDump += "\n";
     }
@@ -164,25 +214,18 @@ void updateCardDump() {
 
 // --- Web Server Handlers ---
 void handleRoot() {
-  String html = "<!DOCTYPE html><html><head>";
-  html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
+  String html = "";
+  html += "<!DOCTYPE html><html><head>";
   html += "<meta http-equiv='refresh' content='3'>"; // Auto-refresh every 3 seconds
   html += "<title>ESP32 RFID Dump</title>";
-  html += "<style>";
-  html += "body { background-color: #000000; color: #00FF00; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 20px; }";
-  html += "h1 { text-align: center; color: #00FF00; text-shadow: 0 0 5px #00FF00; margin-bottom: 5px; font-size: 1.5em; }";
-  html += ".subtitle { text-align: center; color: #008800; margin-bottom: 20px; font-size: 0.85em; }";
-  html += ".terminal { background-color: #0a0a0a; border: 1px solid #00FF00; border-radius: 5px; padding: 15px; overflow-x: auto; box-shadow: 0 0 10px rgba(0, 255, 0, 0.2); }";
-  html += "pre { margin: 0; white-space: pre-wrap; word-wrap: break-word; line-height: 1.4; font-size: 13px; }";
-  html += ".status { color: #FFFF00; font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed #004400; padding-bottom: 5px; }";
-  html += "</style></head><body>";
+  html += "<style>body{background-color:black;color:#00FF00;font-family:monospace;} pre{font-size:14px;}</style>";
+  html += "</head><body>";
   html += "<h1>ESP32 RFID READER</h1>";
-  html += "<div class='subtitle'>WiFi: ESP32_RFID_Reader | Pass: 12345678 | IP: 192.168.4.1</div>";
-  html += "<div class='terminal'>";
-  html += "<div class='status'>STATUS: " + scanStatus + " | TOTAL SCANS: " + String(counter) + "</div>";
+  html += "<p>WiFi: ESP32_RFID_Reader | Pass: 12345678 | IP: 192.168.4.1</p>";
+  html += "<hr>";
+  html += "<p>STATUS: " + scanStatus + " | TOTAL SCANS: " + String(counter) + "</p>";
   html += "<pre>" + lastCardDump + "</pre>";
-  html += "</div>";
-  html += "</body></html>";
+  html += "<hr></body></html>";
   server.send(200, "text/html", html);
 }
 
@@ -191,15 +234,24 @@ void handleNotFound() {
 }
 
 void setup() {
-  pinMode(LED1, OUTPUT);
   pinMode(resetButtonPin, INPUT_PULLUP);
+  
+  // Setup RGB LED pins
+  pinMode(rgbRedPin, OUTPUT);
+  pinMode(rgbGreenPin, OUTPUT);
+  pinMode(rgbBluePin, OUTPUT);
+  
+  // Ensure LED is off initially
+  analogWrite(rgbRedPin, 0);
+  analogWrite(rgbGreenPin, 0);
+  analogWrite(rgbBluePin, 0);
+
   u8x8.begin();
   u8x8.setFont(u8x8_font_chroma48medium8_r);
   u8x8log.begin(u8x8, U8LOG_WIDTH, U8LOG_HEIGHT, u8log_buffer);
   u8x8log.setRedrawMode(1);
 
   Serial.begin(115200);
-  pinMode(ledPin, OUTPUT);
   pinMode(PIN_BUZZER, OUTPUT);
   SPI.begin();
   rfid.PCD_Init();
@@ -214,7 +266,7 @@ void setup() {
   IPAddress IP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
   Serial.println(IP);
-  
+
   server.on("/", handleRoot);
   server.onNotFound(handleNotFound);
   server.begin();
@@ -230,7 +282,7 @@ void setup() {
   String now = toString(nuidPICC, 4);
   String prev = toString(preNuidPICC, 4);
   String prev2 = toString(pre2NuidPICC, 4);
-  
+
   if (counter == 0) {
     u8x8log.print("RFID Reader\n");
     u8x8log.print("Ready...\n");
@@ -262,7 +314,7 @@ void setup() {
     u8x8log.print(now);
     u8x8log.print("\n");
   }
-  
+
   Serial.println(F("This code scans the MIFARE Classic NUID."));
   Serial.print(F("Using the following key:"));
   printHex(key.keyByte, MFRC522::MF_KEY_SIZE);
@@ -292,26 +344,29 @@ void checkResetButton() {
         pre2NuidPICC[i] = 0;
       }
 
-      digitalWrite(ledPin, HIGH);
-      digitalWrite(PIN_BUZZER, HIGH);
-      delay(150);
-      digitalWrite(ledPin, LOW);
-      digitalWrite(PIN_BUZZER, LOW);
-      delay(100);
-      digitalWrite(ledPin, HIGH);
-      digitalWrite(PIN_BUZZER, HIGH);
-      delay(150);
-      digitalWrite(ledPin, LOW);
-      digitalWrite(PIN_BUZZER, LOW);
+      // --- 5 Red Flashes and 5 Beeps for NVS Clear ---
+      for (int i = 0; i < 5; i++) {
+        analogWrite(rgbRedPin, 255);
+        analogWrite(rgbGreenPin, 0);
+        analogWrite(rgbBluePin, 0);
+        digitalWrite(PIN_BUZZER, HIGH);
+        delay(100);
+        
+        analogWrite(rgbRedPin, 0);
+        analogWrite(rgbGreenPin, 0);
+        analogWrite(rgbBluePin, 0);
+        digitalWrite(PIN_BUZZER, LOW);
+        delay(100);
+      }
 
-      u8x8log.print("\f");
+      u8x8log.print("\f"); // Form feed to clear OLED screen
       u8x8log.print("NVS CLEARED!\n");
       u8x8log.print("Ready...\n");
       Serial.println("NVS Cleared successfully.");
 
       isButtonPressed = false;
       lastClearTime = millis();
-      
+
       // Reset web display variables
       scanStatus = "Waiting for a card...";
       lastCardDump = "Waiting for a card...\n\nPlace a MIFARE Classic card on the reader\nto view the full memory dump.";
@@ -320,11 +375,18 @@ void checkResetButton() {
 }
 
 void loop() {
-  server.handleClient(); // Handle incoming web browser requests
+  server.handleClient();
   checkResetButton();
 
-  if (!rfid.PICC_IsNewCardPresent()) return;
-  if (!rfid.PICC_ReadCardSerial()) return;
+  // If no card is present, run the idle breathing/cycling animation
+  if (!rfid.PICC_IsNewCardPresent()) {
+    updateIdleRGB();
+    return;
+  }
+  if (!rfid.PICC_ReadCardSerial()) {
+    updateIdleRGB();
+    return;
+  }
 
   Serial.print(F("PICC type: "));
   MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
@@ -347,25 +409,22 @@ void loop() {
       preNuidPICC[i] = nuidPICC[i];
       nuidPICC[i] = rfid.uid.uidByte[i];
     }
-    
+
     scanStatus = "Reading card memory...";
     server.handleClient(); // Keep web server responsive during the read delay
-    
+
     // Generate the full 64-line dump
     updateCardDump();
-    
+
     scanStatus = "Scan complete";
-    
+
     Serial.println(F("The NUID tag is:"));
     Serial.print(F("In hex: "));
     printHex(rfid.uid.uidByte, rfid.uid.size);
     Serial.println();
     Serial.print(F("In dec: "));
-    
-    digitalWrite(ledPin, HIGH);
-    digitalWrite(PIN_BUZZER, HIGH);
     printDec(rfid.uid.uidByte, rfid.uid.size);
-    
+
     String now = toString(rfid.uid.uidByte, rfid.uid.size);
     String prev = toString(preNuidPICC, 4);
     String prev2 = toString(pre2NuidPICC, 4);
@@ -375,16 +434,27 @@ void loop() {
     preferences.putBytes("now", rfid.uid.uidByte, 4);
     counter++;
     preferences.putUInt("counter", counter);
-    
+
     u8x8log.print("#");
     u8x8log.print(counter);
     u8x8log.print(": ");
     u8x8log.print(now);
     u8x8log.print("\n");
 
-    delay(100);
-    digitalWrite(ledPin, LOW);
-    digitalWrite(PIN_BUZZER, LOW);
+    // --- 2 Blue Flashes and 2 Beeps on successful scan ---
+    for (int i = 0; i < 2; i++) {
+      analogWrite(rgbRedPin, 0);
+      analogWrite(rgbGreenPin, 0);
+      analogWrite(rgbBluePin, 255);
+      digitalWrite(PIN_BUZZER, HIGH);
+      delay(100);
+      
+      analogWrite(rgbRedPin, 0);
+      analogWrite(rgbGreenPin, 0);
+      analogWrite(rgbBluePin, 0);
+      digitalWrite(PIN_BUZZER, LOW);
+      delay(100);
+    }
   } else {
     Serial.println(F("Card read previously."));
     scanStatus = "Card read previously (Tap a new card)";
