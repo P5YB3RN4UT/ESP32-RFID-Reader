@@ -110,7 +110,6 @@ The project includes source code for an RFID Reader with the following requireme
 | PIN 2	| GND |
 
 
-
 ## Operation
 
 1. Power up the device.
@@ -120,3 +119,7 @@ The project includes source code for an RFID Reader with the following requireme
 5. Scan another tag or card to repeat.
 6. Clear scan history by depressing push button for 2 seconds.
 
+
+## Photos
+
+<img src="https://www.media-underground.net/images/rfid_breadboard.jpg">
