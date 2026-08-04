@@ -2,7 +2,7 @@
  <img src="https://www.media-underground.net/images/rfid.png">
 </p>
 
-<h3 align="center">ESP32 RFID READER</h3>
+<h3 align="center">ESP32 RFID READER/CLONER</h3>
 
 <div align="center">
 
@@ -54,6 +54,10 @@ The project includes source code for an RFID Reader with the following requireme
 - <b>Web Interface</b>
 
   <i>Broadcast a local access point to display a retro terminal-style Web UI showing sectors, blocks and trailer markers of a recently scanned RFID tag or card.</i>
+
+- <b>Card Cloner</b>
+
+  <i>Still in the test phase but the firmware should now be able to clone the last tag/card read via the Web UI. Requires blank/magic cards which I currently do not have at the time of writing this, so I cannot confirm its effectiveness at this point.
 
 ## Hardware
 
