@@ -122,6 +122,7 @@ The project includes source code for an RFID Reader with the following requireme
 4. Scan tag or card - the OLED will display the UID whilst the Web UI shows sectors, blocks and trailer markers.
 5. Scan another tag or card to repeat.
 6. Clear scan history by depressing push button for 2 seconds.
+7. Untested: Clone the last tag/card scanned by selecting the "Clone Last Card" option on the Web UI. There will be a 15 second timeout to present the reader with a blank/magic RFID card.
 
 
 ## Photos
