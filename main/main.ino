@@ -4,6 +4,7 @@
 #include <SPI.h>
 #include <MFRC522.h>
 #include <U8x8lib.h>
+#include <string.h> // Added for memcpy
 
 #define OLED_SCK_PIN 22
 #define OLED_SDA_PIN 21
@@ -54,6 +55,15 @@ String lastCardDump = "Waiting for a card...\n\nPlace a MIFARE Classic card on t
 // RGB Animation Variables
 unsigned long lastRgbUpdate = 0;
 int currentHue = 0;
+
+// --- CLONING VARIABLES ---
+bool cardMemorySaved = false;
+byte savedCardMemory[64][16]; // Max 64 blocks for 4K cards
+byte savedCardSectors = 0;
+bool savedCardValid[64];      // Tracks which blocks were successfully read
+
+bool cloneRequested = false;
+unsigned long cloneRequestTime = 0;
 
 /**
  * Helper routine to dump a byte array as hex values to Serial.
@@ -155,6 +165,11 @@ void updateCardDump() {
   } else if (piccType == MFRC522::PICC_TYPE_MIFARE_MINI) {
     numSectors = 5;
   }
+  
+  savedCardSectors = numSectors;
+  
+  // Reset validation flags
+  for (int i=0; i<64; i++) savedCardValid[i] = false;
 
   for (byte sector = 0; sector < numSectors; sector++) {
     lastCardDump += "Sector ";
@@ -190,6 +205,10 @@ void updateCardDump() {
         continue;
       }
 
+      // Save the block to memory
+      memcpy(savedCardMemory[blockAddr], buffer, 16);
+      savedCardValid[blockAddr] = true;
+
       // Print the 16 bytes of data
       for (byte index = 0; index < 16; index++) {
         lastCardDump += (buffer[index] < 0x10 ? " 0" : " ") + String(buffer[index], HEX);
@@ -210,6 +229,7 @@ void updateCardDump() {
     }
     lastCardDump += "\n";
   }
+  cardMemorySaved = true;
 }
 
 // --- Web Server Handlers ---
@@ -218,15 +238,34 @@ void handleRoot() {
   html += "<!DOCTYPE html><html><head>";
   html += "<meta http-equiv='refresh' content='3'>"; // Auto-refresh every 3 seconds
   html += "<title>ESP32 RFID Dump</title>";
-  html += "<style>body{background-color:black;color:#00FF00;font-family:monospace;} pre{font-size:14px;}</style>";
+  html += "<style>body{background-color:black;color:#00FF00;font-family:monospace;} pre{font-size:14px;} .btn{background-color:#008CBA;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;font-size:16px;cursor:pointer;border:none;margin-top:10px;}</style>";
   html += "</head><body>";
   html += "<h1>ESP32 RFID READER</h1>";
   html += "<p>WiFi: (((+))) | Pass: p5yb3rn4ut | IP: 192.168.4.1</p>";
   html += "<hr>";
   html += "<p>STATUS: " + scanStatus + " | TOTAL SCANS: " + String(counter) + "</p>";
+  
+  if (cardMemorySaved) {
+    html += "<form action='/clone' method='get' style='margin-bottom: 10px;'>";
+    html += "<button type='submit' class='btn'>CLONE LAST CARD</button>";
+    html += "</form>";
+    html += "<p style='color:yellow;'>Note: Click Clone, then place your target blank/magic card on the reader within 15 seconds.</p>";
+  }
+  
   html += "<pre>" + lastCardDump + "</pre>";
   html += "<hr></body></html>";
   server.send(200, "text/html", html);
+}
+
+void handleClone() {
+  if (!cardMemorySaved) {
+    server.send(200, "text/plain", "No card has been scanned to clone yet!");
+    return;
+  }
+  cloneRequested = true;
+  cloneRequestTime = millis();
+  scanStatus = "Waiting for target blank card... (15s timeout)";
+  server.send(200, "text/html", "<html><head><meta http-equiv='refresh' content='3;url=/'></head><body style='background-color:black;color:#00FF00;font-family:monospace;'><h2>Cloning initiated!</h2><p>Please place the target BLANK card on the reader now.</p><p>You have 15 seconds...</p><p><a href='/'>Back to Home</a></p></body></html>");
 }
 
 void handleNotFound() {
@@ -268,6 +307,7 @@ void setup() {
   Serial.println(IP);
 
   server.on("/", handleRoot);
+  server.on("/clone", handleClone);
   server.onNotFound(handleNotFound);
   server.begin();
   Serial.println("HTTP server started");
@@ -367,9 +407,11 @@ void checkResetButton() {
       isButtonPressed = false;
       lastClearTime = millis();
 
-      // Reset web display variables
+      // Reset web display variables and clone state
       scanStatus = "Waiting for a card...";
       lastCardDump = "Waiting for a card...\n\nPlace a MIFARE Classic card on the reader\nto view the full memory dump.";
+      cardMemorySaved = false;
+      cloneRequested = false;
     }
   }
 }
@@ -377,6 +419,11 @@ void checkResetButton() {
 void loop() {
   server.handleClient();
   checkResetButton();
+
+  if (cloneRequested && (millis() - cloneRequestTime > 15000)) {
+    cloneRequested = false;
+    scanStatus = "Clone timeout. Please try again.";
+  }
 
   // If no card is present, run the idle breathing/cycling animation
   if (!rfid.PICC_IsNewCardPresent()) {
@@ -394,14 +441,109 @@ void loop() {
 
   if (piccType != MFRC522::PICC_TYPE_MIFARE_MINI && piccType != MFRC522::PICC_TYPE_MIFARE_1K && piccType != MFRC522::PICC_TYPE_MIFARE_4K) {
     Serial.println(F("Your tag is not of type MIFARE Classic."));
-    scanStatus = "Unknown tag type (Not MIFARE Classic)";
-    lastCardDump = "Error: Tag is not a MIFARE Classic card.\nOnly MIFARE Mini, 1K, and 4K are supported for full memory dump.";
+    if (cloneRequested) {
+      scanStatus = "Error: Target is not MIFARE Classic.";
+      cloneRequested = false;
+    } else {
+      scanStatus = "Unknown tag type (Not MIFARE Classic)";
+      lastCardDump = "Error: Tag is not a MIFARE Classic card.\nOnly MIFARE Mini, 1K, and 4K are supported for full memory dump.";
+    }
     rfid.PICC_HaltA();
     rfid.PCD_StopCrypto1();
     return;
   }
 
-  if (rfid.uid.uidByte[0] != nuidPICC[0] || rfid.uid.uidByte[1] != nuidPICC[1] || rfid.uid.uidByte[2] != nuidPICC[2] || rfid.uid.uidByte[3] != nuidPICC[3]) {
+  bool isNewCard = (rfid.uid.uidByte[0] != nuidPICC[0] || rfid.uid.uidByte[1] != nuidPICC[1] || rfid.uid.uidByte[2] != nuidPICC[2] || rfid.uid.uidByte[3] != nuidPICC[3]);
+
+  if (cloneRequested) {
+    if (!isNewCard) {
+      scanStatus = "This is the source card! Place a NEW blank card.";
+      cloneRequested = false; 
+      rfid.PICC_HaltA();
+      rfid.PCD_StopCrypto1();
+      return;
+    }
+    cloneRequested = false;
+    scanStatus = "Cloning data to target card...";
+    server.handleClient(); // Keep web server responsive during the write delay
+    
+    byte buffer[18];
+    bool success = true;
+    
+    for (byte sector = 0; sector < savedCardSectors; sector++) {
+      byte firstBlock = (sector < 32) ? (sector * 4) : (32 * 4 + (sector - 32) * 16);
+      byte numBlocks = (sector < 32) ? 4 : 16;
+      
+      MFRC522::StatusCode status = rfid.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, firstBlock, &key, &(rfid.uid));
+      if (status != MFRC522::STATUS_OK) {
+        scanStatus = "Authenticate failed on sector " + String(sector);
+        success = false;
+        break;
+      }
+      
+      for (byte block = 0; block < numBlocks; block++) {
+        byte blockAddr = firstBlock + block;
+        
+        if (!savedCardValid[blockAddr]) {
+          continue; // Skip blocks not successfully read from source
+        }
+        
+        memcpy(buffer, savedCardMemory[blockAddr], 16);
+        
+        status = rfid.MIFARE_Write(blockAddr, buffer, 16);
+        if (status != MFRC522::STATUS_OK) {
+          if (blockAddr == 0) {
+             Serial.println(F("Block 0 write failed. Card might not be a Magic/Gen2 card. Continuing..."));
+             scanStatus = "Warning: Block 0 write failed. Continuing...";
+          } else {
+            scanStatus = "Write failed at block " + String(blockAddr);
+            success = false;
+            break;
+          }
+        }
+      }
+      if (!success) break;
+    }
+    
+    if (success) {
+      scanStatus = "Cloning successful!";
+      for (int i=0; i<3; i++) {
+        analogWrite(rgbRedPin, 0);
+        analogWrite(rgbGreenPin, 255);
+        analogWrite(rgbBluePin, 0);
+        digitalWrite(PIN_BUZZER, HIGH);
+        delay(100);
+        analogWrite(rgbGreenPin, 0);
+        digitalWrite(PIN_BUZZER, LOW);
+        delay(100);
+      }
+    } else {
+      scanStatus = "Cloning failed!";
+      for (int i=0; i<3; i++) {
+        analogWrite(rgbRedPin, 255);
+        analogWrite(rgbGreenPin, 0);
+        analogWrite(rgbBluePin, 0);
+        digitalWrite(PIN_BUZZER, HIGH);
+        delay(100);
+        analogWrite(rgbRedPin, 0);
+        digitalWrite(PIN_BUZZER, LOW);
+        delay(100);
+      }
+    }
+
+    // Prevent the ESP32 from immediately reading the target card as a "new card" after the clone attempt
+    for (byte i = 0; i < 4; i++) {
+      pre2NuidPICC[i] = preNuidPICC[i];
+      preNuidPICC[i] = nuidPICC[i];
+      nuidPICC[i] = rfid.uid.uidByte[i];
+    }
+
+    rfid.PICC_HaltA();
+    rfid.PCD_StopCrypto1();
+    return; 
+  }
+
+  if (isNewCard) {
     Serial.println(F("A new card has been detected."));
 
     for (byte i = 0; i < 4; i++) {
