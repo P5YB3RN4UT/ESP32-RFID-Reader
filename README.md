@@ -123,3 +123,5 @@ The project includes source code for an RFID Reader with the following requireme
 ## Photos
 
 <img src="https://www.media-underground.net/images/rfid_breadboard.jpg">
+<img src="https://www.media-underground.net/images/rfid_front.jpg">
+<img src="https://www.media-underground.net/images/rfid_back.jpg">
