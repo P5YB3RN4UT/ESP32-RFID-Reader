@@ -221,7 +221,7 @@ void handleRoot() {
   html += "<style>body{background-color:black;color:#00FF00;font-family:monospace;} pre{font-size:14px;}</style>";
   html += "</head><body>";
   html += "<h1>ESP32 RFID READER</h1>";
-  html += "<p>WiFi: ESP32_RFID_Reader | Pass: 12345678 | IP: 192.168.4.1</p>";
+  html += "<p>WiFi: (((+))) | Pass: p5yb3rn4ut | IP: 192.168.4.1</p>";
   html += "<hr>";
   html += "<p>STATUS: " + scanStatus + " | TOTAL SCANS: " + String(counter) + "</p>";
   html += "<pre>" + lastCardDump + "</pre>";
