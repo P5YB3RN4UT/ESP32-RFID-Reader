@@ -57,10 +57,11 @@ The project includes source code for an RFID Reader with the following requireme
 
 - <b>Card Cloner</b>
 
-  <i>Still in the test phase but the firmware should now be able to clone the last tag/card read via the Web UI. Requires blank/magic cards which I currently do not have at the time of writing this, so I cannot confirm its effectiveness at this point.
+  <i>Still in the test phase but the firmware should now be able to clone the last tag/card read via the Web UI. Requires blank/magic cards which I currently do not have at the time of writing this, so I cannot confirm its effectiveness at this point.</i>
 
 ## Hardware
 
+Required:
 1. RFID Tags/Cards
 2. ESP32 Module
 3. Programming Cable
@@ -71,6 +72,14 @@ The project includes source code for an RFID Reader with the following requireme
 8. Buzzer
 9. Push Button Switch
 
+Additional:
+1. Prefboard
+2. Switch
+3. 3.7V Li-ion Battery
+4. TC4056/TP4056 Charging Module
+5. Project Box
+
+<i>Note: You may also need some ferrite sheet for EMF shielding if mounting the battery close to the RFID-RC522 module. This can be either bought or repurposed from an old wireless phone charger (as I did when I realised I had a problem with electromagnetic interference).<i>
 
 ## Software
 
