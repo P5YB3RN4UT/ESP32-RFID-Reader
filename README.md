@@ -79,7 +79,7 @@ Additional:
 4. TC4056/TP4056 Charging Module
 5. Project Box
 
-<i>Note: You may also need some ferrite sheet for EMF shielding if mounting the battery close to the RFID-RC522 module. This can be either bought or repurposed from an old wireless phone charger (as I did when I realised I had a problem with electromagnetic interference).<i>
+<i>Note: You may also need some ferrite sheet for EMF shielding if mounting the battery close to the RFID-RC522 module. This can be either bought or repurposed from an old wireless phone charger (as I did when I realised I had a problem with electromagnetic interference).</i>
 
 ## Software
 
