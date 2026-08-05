@@ -74,7 +74,7 @@ Required:
 
 Additional:
 1. Prefboard
-2. Switch
+2. On/Off Switch
 3. 3.7V Li-ion Battery
 4. TC4056/TP4056 Charging Module
 5. Project Box
