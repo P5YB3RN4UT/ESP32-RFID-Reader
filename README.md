@@ -73,7 +73,7 @@ Required:
 9. Push Button Switch
 
 Additional:
-1. Prefboard
+1. Perfboard
 2. On/Off Switch
 3. 3.7V Li-ion Battery
 4. TC4056/TP4056 Charging Module
