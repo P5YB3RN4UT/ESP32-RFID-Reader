@@ -13,10 +13,8 @@
 
 ---
 
-<p align="center"> 
+## Summary
 This project involves creating a device that uses an ESP32 microcontroller to read and clone RFID tags.
-    <br> 
-</p>
 
 ## Introduction
 
