@@ -64,10 +64,11 @@ Required:
 
 Additional:
 1. Perfboard
-2. On/Off Switch
-3. 3.7V Li-ion Battery
-4. TC4056/TP4056 Charging Module
-5. Project Box
+2. Pin Headers
+3. On/Off Switch
+4. 3.7V Li-ion Battery
+5. TC4056/TP4056 Charging Module
+6. Project Box
 
 <i>Note: You may also need some ferrite sheet for EMF shielding if mounting the battery close to the RFID-RC522 module. This can be either bought or repurposed from an old wireless phone charger (as I did when I realised I had a problem with electromagnetic interference).</i>
 
