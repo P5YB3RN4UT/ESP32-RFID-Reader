@@ -9,6 +9,7 @@
 ## Summary
 This project involves creating a device that uses an ESP32 microcontroller to read and clone RFID tags.
 
+
 ## Introduction
 
 The project includes source code for an RFID Reader with the following requirements:
@@ -48,6 +49,7 @@ The project includes source code for an RFID Reader with the following requireme
 - <b>Card Cloner</b>
 
   <i>Still in the test phase but the firmware should now be able to clone the last tag/card read via the Web UI. Requires blank/magic cards which I currently do not have at the time of writing this, so I cannot confirm its effectiveness at this point.</i>
+
 
 ## Hardware
 
