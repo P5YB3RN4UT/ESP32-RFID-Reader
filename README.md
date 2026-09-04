@@ -132,3 +132,5 @@ Additional:
 <img src="https://www.media-underground.net/images/rfid_breadboard.jpg">
 <img src="https://www.media-underground.net/images/rfid_front.jpg">
 <img src="https://www.media-underground.net/images/rfid_back.jpg">
+
+[![WDGWars](https://wdgwars.pl/card/345-4HN42QTP.svg)](https://wdgwars.pl/)
