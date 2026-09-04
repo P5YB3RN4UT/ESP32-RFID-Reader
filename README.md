@@ -76,7 +76,7 @@ Additional:
 
 ## Software
 
-[ArduinoIDE](https://www.arduino.cc/en/software) - For Programming The Device.
+[Arduino IDE](https://www.arduino.cc/en/software) - For Programming The Device.
 
 
 ## Pinout
