@@ -1,5 +1,5 @@
 <p align="center">
- <img src="https://www.media-underground.net/images/rfid.png">
+ <img src="https://raw.githubusercontent.com/P5YB3RN4UT/ESP32-RFID-Reader/master/img/rfid.png">
 </p>
 
 <h3 align="center">ESP32 RFID READER/CLONER</h3>
@@ -129,8 +129,7 @@ Additional:
 
 ## Photos
 
-<img src="https://www.media-underground.net/images/rfid_breadboard.jpg">
-<img src="https://www.media-underground.net/images/rfid_front.jpg">
-<img src="https://www.media-underground.net/images/rfid_back.jpg">
+<img src="https://raw.githubusercontent.com/P5YB3RN4UT/ESP32-RFID-Reader/master/img/rfid_breadboard.jpg">
+<img src="https://raw.githubusercontent.com/P5YB3RN4UT/ESP32-RFID-Reader/master/img/rfid_front.jpg">
+<img src="https://raw.githubusercontent.com/P5YB3RN4UT/ESP32-RFID-Reader/master/img/rfid_back.jpg">
 
-[![WDGWars](https://wdgwars.pl/card/345-4HN42QTP.svg)](https://wdgwars.pl/)
